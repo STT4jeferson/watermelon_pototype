@@ -1,0 +1,70 @@
+export const theme = {
+  colors: {
+    primary: '#0E7365',
+    primaryPressed: '#0B5B4F',
+    primarySoft: '#E4F1EE',
+    success: '#1B7A3D',
+    successBg: '#E8F4EC',
+    pending: '#92500C',
+    pendingBg: '#FCF1E1',
+    syncing: '#1D5FBF',
+    syncingBg: '#E9F0FC',
+    error: '#B3261E',
+    errorBg: '#FBECEA',
+    errorBorder: '#F3CBC7',
+    offlineText: '#7C4A12',
+    offlineBg: '#FDF3E7',
+    offlineBorder: '#F2DFC4',
+    offlineChip: '#4A5460',
+    offlineChipBg: '#F0F1F4',
+    vendaTag: '#3A55A8',
+    vendaTagBg: '#EBEFFA',
+    background: '#F4F5F7',
+    surface: '#FFFFFF',
+    border: '#E7EAEE',
+    inputBorder: '#D5DBE2',
+    inputBorderError: '#D65E55',
+    text: '#1A222C',
+    textSecondary: '#5F6B79',
+    textMuted: '#97A0AC',
+    toastBg: '#232B35',
+    disabledBtnBg: '#F0F1F4',
+    disabledBtnText: '#97A0AC',
+    skeleton: '#E4E7EB',
+  },
+  typography: {
+    title: { fontSize: 24, fontWeight: '800' as const },
+    header: { fontSize: 17, fontWeight: '700' as const },
+    body: { fontSize: 14, fontWeight: '600' as const, lineHeight: 20 },
+    label: { fontSize: 13, fontWeight: '600' as const },
+    meta: { fontSize: 12, fontWeight: '500' as const },
+    badge: { fontSize: 11, fontWeight: '700' as const },
+    footer: { fontSize: 11, fontWeight: '500' as const },
+  },
+  spacing: {
+    s1: 4, s2: 8, s3: 12, s4: 16, s5: 20, s6: 24
+  },
+  radius: {
+    input: 12,
+    card: 14,
+    button: 14,
+    pill: 999,
+    sheet: 22
+  },
+  shadows: {
+    button: {
+      shadowColor: '#0E7365',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.28,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    card: {
+      shadowColor: '#1A222C',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    }
+  }
+};

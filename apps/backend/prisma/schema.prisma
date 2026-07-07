@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Empresa {
+  id        Int       @id @default(autoincrement())
+  nome      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  usuarios      Usuario[]
+  registros     Registro[]
+  fotoRegistros FotoRegistro[]
+
+  @@map("empresa")
+}
+
+model Usuario {
+  id        Int       @id @default(autoincrement())
+  nome      String
+  login     String    @unique
+  senha     String
+  empresaId Int       @map("empresa_id")
+  empresa   Empresa   @relation(fields: [empresaId], references: [id])
+  
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  registros     Registro[]
+  fotoRegistros FotoRegistro[]
+
+  @@map("usuario")
+}
+
+model Registro {
+  id             String    @id @db.Char(36)
+  empresaId      Int       @map("empresa_id")
+  empresa        Empresa   @relation(fields: [empresaId], references: [id])
+  usuarioId      Int       @map("usuario_id")
+  usuario        Usuario   @relation(fields: [usuarioId], references: [id])
+  tipo           String    // "COMPRA" ou "VENDA"
+  dataHora       DateTime  @map("data_hora")
+  descricao      String    @db.Text
+  
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  lastModifiedAt DateTime  @default(now()) @updatedAt @map("last_modified_at")
+
+  fotos          FotoRegistro[]
+
+  @@map("registro")
+}
+
+model FotoRegistro {
+  id             String    @id @db.Char(36)
+  registroId     String    @map("registro_id") @db.Char(36)
+  registro       Registro  @relation(fields: [registroId], references: [id])
+  empresaId      Int       @map("empresa_id")
+  empresa        Empresa   @relation(fields: [empresaId], references: [id])
+  usuarioId      Int       @map("usuario_id")
+  usuario        Usuario   @relation(fields: [usuarioId], references: [id])
+  
+  localPath      String?   @map("local_path") @db.Text
+  remoteUrl      String?   @map("remote_url") @db.Text
+  mimeType       String?   @map("mime_type")
+  fileName       String?   @map("file_name")
+  
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  lastModifiedAt DateTime  @default(now()) @updatedAt @map("last_modified_at")
+
+  @@map("foto_registro")
+}

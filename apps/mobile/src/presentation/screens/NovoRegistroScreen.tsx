@@ -1,0 +1,369 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { ArrowDown, ArrowUp, Calendar, Clock, Camera, Image as ImageIcon } from 'lucide-react-native';
+import { theme } from '../theme';
+import { Button } from '../components/Button';
+import { PhotoThumb } from '../components/PhotoThumb';
+import { useNavigation } from '@react-navigation/native';
+import NetInfo from '@react-native-community/netinfo';
+import { ConnectionStatus } from '../components/ConnectionStatus';
+import * as ImagePicker from 'expo-image-picker';
+import { database } from '../../database';
+import { Registro, FotoRegistro } from '../../database/models';
+import { storage } from '../../infra/storage';
+
+export function NovoRegistroScreen() {
+  const navigation = useNavigation<any>();
+  const [type, setType] = useState<'Compra' | 'Venda' | null>(null);
+  const [description, setDescription] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+
+  React.useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(!!state.isConnected);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const date = new Date().toLocaleDateString('pt-BR');
+  const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  const descValid = description.length >= 10;
+  const isFormValid = type !== null && descValid;
+
+  const handlePickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 1,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setPhotos([...photos, result.assets[0].uri]);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      alert("É necessário permissão para acessar a câmera!");
+      return;
+    }
+
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 1,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setPhotos([...photos, result.assets[0].uri]);
+    }
+  };
+
+
+  const handleSave = async () => {
+    if (!isFormValid) return;
+    setLoading(true);
+
+    try {
+      const session = await storage.getSession();
+      const empresaId = session?.user?.empresaId || 1;
+      const usuarioId = session?.user?.id || 1;
+      
+      const now = new Date();
+
+      await database.write(async () => {
+        const novoRegistro = await database.collections.get<Registro>('registros').create(registro => {
+          registro.tipo = type!;
+          registro.descricao = description;
+          registro.dataHora = now;
+          registro.status = 'pending';
+          registro.empresaId = empresaId;
+          registro.usuarioId = usuarioId;
+          registro.createdAt = now;
+          registro.updatedAt = now;
+        });
+
+        for (const uri of photos) {
+          await database.collections.get<FotoRegistro>('foto_registros').create(foto => {
+            foto.registro.set(novoRegistro);
+            foto.localPath = uri;
+            foto.fileName = uri.split('/').pop() || 'photo.jpg';
+            foto.mimeType = 'image/jpeg';
+            foto.status = 'local';
+            foto.empresaId = empresaId;
+            foto.usuarioId = usuarioId;
+            foto.createdAt = now;
+            foto.updatedAt = now;
+          });
+        }
+      });
+      navigation.goBack();
+    } catch (e) {
+      console.error(e);
+      // Aqui poderíamos ter um Toast de erro
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => <ConnectionStatus status={isOnline ? 'online' : 'offline'} />
+    });
+  }, [navigation]);
+
+  return (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Tipo</Text>
+          <View style={styles.typeRow}>
+            <TouchableOpacity 
+              style={[styles.typeCard, type === 'Compra' && styles.typeCardSelected]}
+              onPress={() => setType('Compra')}
+            >
+              <ArrowDown size={20} color={type === 'Compra' ? theme.colors.primary : theme.colors.textSecondary} />
+              <Text style={[styles.typeText, type === 'Compra' && styles.typeTextSelected]}>Compra</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.typeCard, type === 'Venda' && styles.typeCardSelected]}
+              onPress={() => setType('Venda')}
+            >
+              <ArrowUp size={20} color={type === 'Venda' ? theme.colors.primary : theme.colors.textSecondary} />
+              <Text style={[styles.typeText, type === 'Venda' && styles.typeTextSelected]}>Venda</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Data e hora</Text>
+          <View style={styles.dateTimeRow}>
+            <View style={[styles.inputContainer, { flex: 1.3 }]}>
+              <Calendar size={18} color={theme.colors.textSecondary} />
+              <Text style={styles.inputText}>{date}</Text>
+            </View>
+            <View style={[styles.inputContainer, { flex: 1 }]}>
+              <Clock size={18} color={theme.colors.textSecondary} />
+              <Text style={styles.inputText}>{time}</Text>
+            </View>
+          </View>
+          <Text style={styles.hint}>Preenchido automaticamente — toque para ajustar</Text>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Descrição</Text>
+          <TextInput 
+            style={[styles.textarea, description.length > 0 && (descValid ? styles.inputValid : styles.inputError)]}
+            multiline
+            numberOfLines={4}
+            placeholder="Detalhes do registro"
+            value={description}
+            onChangeText={setDescription}
+            textAlignVertical="top"
+          />
+          <View style={styles.descFooter}>
+            {description.length > 0 && !descValid ? (
+              <Text style={styles.errorText}>A descrição precisa de pelo menos 10 caracteres</Text>
+            ) : description.length > 0 && descValid ? (
+              <Text style={styles.validText}>✓ Descrição válida</Text>
+            ) : (
+              <Text style={styles.hint}>Mínimo de 10 caracteres</Text>
+            )}
+            <Text style={[styles.charCount, (!descValid && description.length > 0) && styles.charCountError]}>
+              {description.length}/500
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Fotos</Text>
+          <View style={styles.photoActions}>
+            <TouchableOpacity style={styles.photoBtn} onPress={handleTakePhoto}>
+              <Camera size={18} color={theme.colors.primary} />
+              <Text style={styles.photoBtnText}>Tirar foto</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.photoBtn} onPress={handlePickImage}>
+              <ImageIcon size={18} color={theme.colors.primary} />
+              <Text style={styles.photoBtnText}>Galeria</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.hint}>As fotos ficam salvas no dispositivo e são enviadas na sincronização</Text>
+          
+          <View style={styles.photosGrid}>
+            {photos.map((uri, index) => (
+              <PhotoThumb key={index} uri={uri} onRemove={() => setPhotos(photos.filter((_, i) => i !== index))} />
+            ))}
+            <PhotoThumb isAdd onPress={handlePickImage} />
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <Button 
+          title={loading ? "Salvando…" : "Salvar registro"}
+          onPress={handleSave}
+          disabled={!isFormValid}
+          loading={loading}
+          style={styles.saveBtn}
+        />
+        <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.cancelBtnText}>Cancelar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    padding: 18,
+    gap: 18,
+  },
+  formGroup: {
+    gap: 8,
+  },
+  label: {
+    ...theme.typography.label,
+    color: theme.colors.text,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  typeCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    borderRadius: theme.radius.card,
+    height: 52,
+    ...theme.shadows.card,
+  },
+  typeCardSelected: {
+    backgroundColor: theme.colors.primarySoft,
+    borderColor: theme.colors.primary,
+  },
+  typeText: {
+    ...theme.typography.body,
+    color: theme.colors.textSecondary,
+  },
+  typeTextSelected: {
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.inputBorder,
+    borderRadius: theme.radius.input,
+    paddingHorizontal: 12,
+    height: 52,
+    gap: 8,
+  },
+  inputText: {
+    ...theme.typography.body,
+    color: theme.colors.text,
+  },
+  hint: {
+    ...theme.typography.meta,
+    color: theme.colors.textSecondary,
+  },
+  textarea: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.inputBorder,
+    borderRadius: theme.radius.input,
+    padding: 16,
+    minHeight: 96,
+    ...theme.typography.body,
+    color: theme.colors.text,
+  },
+  inputValid: {
+    borderColor: theme.colors.primary,
+  },
+  inputError: {
+    borderColor: theme.colors.inputBorderError,
+  },
+  descFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  validText: {
+    ...theme.typography.meta,
+    color: theme.colors.success,
+  },
+  errorText: {
+    ...theme.typography.meta,
+    color: theme.colors.error,
+  },
+  charCount: {
+    ...theme.typography.meta,
+    color: theme.colors.textSecondary,
+  },
+  charCountError: {
+    color: theme.colors.error,
+  },
+  photoActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  photoBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#B9D6D0',
+    borderRadius: theme.radius.button,
+  },
+  photoBtnText: {
+    ...theme.typography.body,
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
+  photosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+  },
+  footer: {
+    padding: 20,
+    backgroundColor: theme.colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+  },
+  saveBtn: {
+    marginBottom: 16,
+  },
+  cancelBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+  },
+  cancelBtnText: {
+    ...theme.typography.body,
+    color: theme.colors.textSecondary,
+    fontWeight: '700',
+  }
+});
