@@ -1,8 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ChevronRight, Camera } from 'lucide-react-native';
 import { SyncBadge, SyncStatus } from './SyncBadge';
-import { theme } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
 
 export type RecordCardProps = {
   type: 'Compra' | 'Venda';
@@ -15,9 +16,13 @@ export type RecordCardProps = {
 };
 
 export function RecordCard({ type, date, description, photosCount, syncStatus, onPress, onRetry }: RecordCardProps) {
+  const { t } = useTranslation();
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+  const styles = createStyles(theme);
   const isVenda = type === 'Venda';
   const tagBg = isVenda ? theme.colors.vendaTagBg : theme.colors.primarySoft;
   const tagColor = isVenda ? theme.colors.vendaTag : theme.colors.primary;
+  const translatedType = type === 'Venda' ? t('form.sale') : t('form.purchase');
 
   return (
     <TouchableOpacity 
@@ -29,7 +34,7 @@ export function RecordCard({ type, date, description, photosCount, syncStatus, o
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={[styles.tag, { backgroundColor: tagBg }]}>
-              <Text style={[styles.tagText, { color: tagColor }]}>{type}</Text>
+              <Text style={[styles.tagText, { color: tagColor }]}>{translatedType}</Text>
             </View>
             <Text style={styles.date}>{date}</Text>
           </View>
@@ -40,12 +45,12 @@ export function RecordCard({ type, date, description, photosCount, syncStatus, o
         <View style={styles.footer}>
           <View style={styles.photosInfo}>
             <Camera size={14} color={theme.colors.textSecondary} />
-            <Text style={styles.photosText}>{photosCount} fotos</Text>
+            <Text style={styles.photosText}>{photosCount} {t('components.photoCount')}</Text>
           </View>
           <View style={styles.syncInfo}>
             {syncStatus === 'error' && onRetry && (
               <TouchableOpacity onPress={onRetry} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-                <Text style={styles.retryText}>Tentar novamente</Text>
+                <Text style={styles.retryText}>{t('common.retry')}</Text>
               </TouchableOpacity>
             )}
             <SyncBadge status={syncStatus} />
@@ -59,7 +64,7 @@ export function RecordCard({ type, date, description, photosCount, syncStatus, o
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.card,

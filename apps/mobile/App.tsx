@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -5,18 +6,33 @@ import { LoginScreen } from './src/presentation/screens/LoginScreen';
 import { HomeScreen } from './src/presentation/screens/HomeScreen';
 import { NovoRegistroScreen } from './src/presentation/screens/NovoRegistroScreen';
 import { DetalheRegistroScreen } from './src/presentation/screens/DetalheRegistroScreen';
+import { PerfilScreen } from './src/presentation/screens/PerfilScreen';
 import { storage } from './src/infra/storage';
-import { ActivityIndicator, View, StyleSheet, Text } from 'react-native';
-import { theme } from './src/presentation/theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, View, StyleSheet, Text, LogBox } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { ThemeProvider, useTheme } from './src/presentation/theme/ThemeProvider';
+import './src/infra/i18n';
+import i18n from './src/infra/i18n';
 import { Cloud } from 'lucide-react-native';
+
+LogBox.ignoreLogs([
+  'Diagnostic error: [Sync] Server wants client to create record',
+  '[Diagnostic error: [Sync] Server wants client to create record'
+]);
 
 const Stack = createNativeStackNavigator();
 
-export default function App() {
+
+function MainApp() {
+  const { t } = useTranslation();
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+  const styles = createStyles(theme);
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
 
   useEffect(() => {
     storage.getSession().then(session => {
+      if (session?.language) i18n.changeLanguage(session.language);
       setTimeout(() => {
         setInitialRoute(session?.token ? 'Home' : 'Login');
       }, 1500); // Simulate splash screen time
@@ -25,41 +41,46 @@ export default function App() {
 
   if (!initialRoute) {
     return (
-      <View style={styles.splashContainer}>
+      <SafeAreaView style={styles.splashContainer}>
         <View style={styles.logoWrapper}>
-          <Cloud size={40} color="#FFF" />
+          <Cloud size={40} color={theme.colors.splashIconColor} />
         </View>
-        <Text style={styles.splashTitle}>Registros</Text>
+        <Text style={styles.splashTitle}>{t('nav.records')}</Text>
         <View style={styles.loadingRow}>
           <ActivityIndicator size="small" color="#FFF" />
-          <Text style={styles.loadingText}>Restaurando sua sessão…</Text>
+          <Text style={styles.loadingText}>{t('nav.restoring')}</Text>
         </View>
-        <Text style={styles.splashFooter}>Seus dados ficam salvos neste dispositivo</Text>
-      </View>
+        <Text style={styles.splashFooter}>{t('nav.dataSaved')}</Text>
+      </SafeAreaView>
     );
   }
 
   return (
+    <>
+    <StatusBar backgroundColor={theme.colors.surface} style={isDarkMode ? 'light' : 'dark'} />
     <NavigationContainer>
       <Stack.Navigator initialRouteName={initialRoute} screenOptions={{
         headerStyle: { backgroundColor: theme.colors.surface },
         headerTintColor: theme.colors.text,
-        headerTitleStyle: { ...theme.typography.header },
+        headerTitleStyle: { ...theme.typography.header, color: theme.colors.text },
         headerShadowVisible: false,
+        contentStyle: { borderTopWidth: 1, borderTopColor: theme.colors.border }
       }}>
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="NovoRegistro" component={NovoRegistroScreen} options={{ title: 'Novo registro' }} />
-        <Stack.Screen name="DetalheRegistro" component={DetalheRegistroScreen} options={{ title: 'Detalhe do registro' }} />
+        <Stack.Screen name="NovoRegistro" component={NovoRegistroScreen} options={{ title: t('nav.newRecord') }} />
+        <Stack.Screen name="DetalheRegistro" component={DetalheRegistroScreen} options={{ title: t('nav.recordDetails') }} />
+        <Stack.Screen name="Perfil" component={PerfilScreen} options={{ title: t('nav.profile') }} />
       </Stack.Navigator>
     </NavigationContainer>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   splashContainer: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.splashBg,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -95,3 +116,11 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.55)',
   }
 });
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <MainApp />
+    </ThemeProvider>
+  );
+}

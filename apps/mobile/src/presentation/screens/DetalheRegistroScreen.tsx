@@ -1,13 +1,18 @@
+import { useTranslation } from 'react-i18next';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { Clock, Check } from 'lucide-react-native';
-import { theme } from '../theme';
+import { Clock, Check, Cloud, AlertTriangle, RefreshCw } from 'lucide-react-native';
+import { Button } from '../components/Button';
+import { useTheme } from '../theme/ThemeProvider';
 import { SyncBadge } from '../components/SyncBadge';
 import { PhotoThumb } from '../components/PhotoThumb';
 import { database } from '../../database';
 import { Registro, FotoRegistro } from '../../database/models';
 
 export function DetalheRegistroScreen({ route, navigation }: any) {
+  const { t } = useTranslation();
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+  const styles = createStyles(theme);
   const { registroId } = route.params;
   const [registro, setRegistro] = useState<Registro | null>(null);
   const [fotos, setFotos] = useState<FotoRegistro[]>([]);
@@ -58,9 +63,46 @@ export function DetalheRegistroScreen({ route, navigation }: any) {
     );
   }
 
+  const isPending = registro.status === 'pending';
+  const isError = registro.status === 'error';
+  const isSynced = registro.status === 'synced';
+
+  const renderBanner = () => {
+    if (isError) {
+      return (
+        <View style={styles.bannerError}>
+          <View style={styles.bannerErrorRow}>
+            <AlertTriangle size={18} color={theme.colors.error} />
+            <Text style={styles.bannerErrorText}>
+              <Text style={{ fontWeight: '700', color: theme.colors.errorBannerText }}>{t('details.errorBanner')}</Text> {t('details.errorSafe')}
+            </Text>
+          </View>
+          <Button 
+            title={t('common.retry')} 
+            onPress={() => {}} 
+            icon={<RefreshCw size={16} color="#FFF" />} 
+            style={styles.retryBtn} 
+          />
+        </View>
+      );
+    }
+    if (isPending) {
+      return (
+        <View style={styles.bannerOffline}>
+          <Cloud size={18} color={theme.colors.offlineText} style={{ marginTop: 2 }} />
+          <Text style={styles.bannerText}>
+            {t('details.offlineBanner')}
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
   const isVenda = registro.tipo === 'Venda';
   const tagBg = isVenda ? theme.colors.vendaTagBg : theme.colors.primarySoft;
   const tagColor = isVenda ? theme.colors.vendaTag : theme.colors.primary;
+  const translatedType = registro.tipo === 'Venda' ? t('form.sale') : t('form.purchase');
   
   const dateStr = registro.dataHora ? registro.dataHora.toLocaleDateString('pt-BR') : '';
   const timeStr = registro.dataHora ? registro.dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
@@ -68,16 +110,12 @@ export function DetalheRegistroScreen({ route, navigation }: any) {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        {registro.status === 'pending' && (
-          <View style={styles.bannerOffline}>
-            <Text style={styles.bannerText}>Este registro está salvo no aparelho e será enviado automaticamente quando a conexão voltar.</Text>
-          </View>
-        )}
+        {renderBanner()}
         
         <View style={styles.card}>
           <View style={styles.header}>
             <View style={[styles.tag, { backgroundColor: tagBg }]}>
-              <Text style={[styles.tagText, { color: tagColor }]}>{registro.tipo}</Text>
+              <Text style={[styles.tagText, { color: tagColor }]}>{translatedType}</Text>
             </View>
             <Text style={styles.dateTime}>{dateStr} · {timeStr}</Text>
           </View>
@@ -86,30 +124,51 @@ export function DetalheRegistroScreen({ route, navigation }: any) {
           
           <View style={styles.meta}>
             <Clock size={14} color={theme.colors.textMuted} />
-            <Text style={styles.metaText}>Criado neste dispositivo em {dateStr} às {timeStr}</Text>
+            <Text style={styles.metaText}>{t('details.createdAt')} {dateStr} {t('details.at')} {timeStr}</Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fotos · {fotos.length}</Text>
+          <Text style={styles.sectionTitle}>{t('details.photosCount')} · {fotos.length}</Text>
           <View style={styles.photosGrid}>
             {fotos.map((photo, index) => (
               <View key={index} style={styles.photoWrapper}>
-                <PhotoThumb uri={photo.localPath || photo.remoteUrl} status={photo.status as any} />
+                <PhotoThumb variant="large"  uri={photo.localPath || photo.remoteUrl} status={photo.status as any} />
               </View>
             ))}
           </View>
-          <Text style={styles.note}>As fotos originais continuam disponíveis neste dispositivo, mesmo offline.</Text>
+          <Text style={styles.note}>{t('details.photosNote')}</Text>
         </View>
 
         <View style={styles.syncCard}>
-          <Text style={styles.sectionTitle}>Sincronização</Text>
+          <Text style={styles.sectionTitle}>{t('details.syncSection')}</Text>
           <View style={styles.syncRow}>
-            <Text style={styles.syncLabel}>Registro</Text>
+            <Text style={styles.syncLabel}>{t('details.record')}</Text>
             <View style={styles.syncStatus}>
-              <Text style={styles.syncStatusText}>{registro.status === 'pending' ? 'Pendente' : 'Sincronizado'}</Text>
-              <SyncBadge status={registro.status as any} />
+              <Text style={[styles.syncStatusText, 
+                isPending && { color: theme.colors.pending },
+                isSynced && { color: theme.colors.success },
+                isError && { color: theme.colors.error }
+              ]}>
+                {isSynced ? t('details.synced') : isPending ? t('details.waitingConn') : t('common.error')}
+              </Text>
             </View>
+          </View>
+          <View style={styles.syncRow}>
+            <Text style={styles.syncLabel}>{t('details.photosCount')}</Text>
+            <Text style={[styles.syncStatusText, 
+                isPending && { color: theme.colors.pending },
+                isSynced && { color: theme.colors.success },
+                isError && { color: theme.colors.error }
+              ]}>
+                {fotos.filter(f => f.status === 'uploaded').length} de {fotos.length} enviadas
+            </Text>
+          </View>
+          <View style={styles.syncRow}>
+            <Text style={styles.syncLabel}>{isError ? t('details.lastAttempt') : t('details.lastSync')}</Text>
+            <Text style={styles.syncStatusText}>
+              {t('common.todayAt')} {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </Text>
           </View>
         </View>
       </ScrollView>
@@ -117,7 +176,7 @@ export function DetalheRegistroScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -128,12 +187,40 @@ const styles = StyleSheet.create({
   },
   bannerOffline: {
     backgroundColor: theme.colors.offlineBg,
-    padding: 12,
+    padding: 16,
     borderRadius: theme.radius.card,
+    flexDirection: 'row',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.offlineBorder,
   },
   bannerText: {
-    ...theme.typography.meta,
+    ...theme.typography.body,
     color: theme.colors.offlineText,
+    flex: 1,
+    lineHeight: 20,
+  },
+  bannerError: {
+    backgroundColor: theme.colors.errorBtnBgBg,
+    padding: 16,
+    borderRadius: theme.radius.card,
+    borderWidth: 1,
+    borderColor: theme.colors.errorBorder,
+    gap: 16,
+  },
+  bannerErrorRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  bannerErrorText: {
+    ...theme.typography.body,
+    color: theme.colors.errorBannerText,
+    flex: 1,
+    lineHeight: 20,
+  },
+  retryBtn: {
+    backgroundColor: theme.colors.errorBtnBg,
+    height: 44,
   },
   card: {
     backgroundColor: theme.colors.surface,
@@ -190,8 +277,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   photoWrapper: {
-    width: 130,
-    height: 130,
+    width: '48%',
+    aspectRatio: 1,
   },
   note: {
     ...theme.typography.meta,

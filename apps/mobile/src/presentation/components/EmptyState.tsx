@@ -1,31 +1,35 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Cloud } from 'lucide-react-native';
+import { FileText, Plus } from 'lucide-react-native';
 import { Button } from './Button';
-import { theme } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
 
 export function EmptyState({ onAction }: { onAction: () => void }) {
+  const { t } = useTranslation();
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.container}>
       <View style={styles.iconWrapper}>
-        <Cloud size={32} color={theme.colors.primary} />
+        <FileText size={32} color={theme.colors.primary} />
       </View>
-      <Text style={styles.title}>Nenhum registro ainda</Text>
+      <Text style={styles.title}>{t('components.emptyTitle')}</Text>
       <Text style={styles.text}>
-        Crie seu primeiro registro de compra ou venda. Ele ficará salvo mesmo sem internet.
+        {t('components.emptySub')}
       </Text>
-      <Button title="Novo registro" onPress={onAction} style={styles.button} />
+      <Button title={t('nav.newRecord')} icon={<Plus size={20} color="#FFF" />} onPress={onAction} style={styles.button} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: theme.spacing.s5,
-    marginTop: 40,
+    marginTop: 0,
   },
   iconWrapper: {
     width: 72,
@@ -50,6 +54,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.s6,
   },
   button: {
-    width: '100%',
+    alignSelf: 'center',
   }
 });

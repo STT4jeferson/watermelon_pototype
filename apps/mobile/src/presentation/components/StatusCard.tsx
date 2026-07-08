@@ -1,7 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Check, WifiOff, AlertTriangle, RefreshCw } from 'lucide-react-native';
-import { theme } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
 
 type StatusCardProps = {
   status: 'success' | 'offline' | 'syncing' | 'error';
@@ -12,20 +13,23 @@ type StatusCardProps = {
 };
 
 export function StatusCard({ status, title, subtitle, onPress, progress }: StatusCardProps) {
+  const { t } = useTranslation();
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+  const styles = createStyles(theme);
   let config = { bg: '', icon: null as any, defaultTitle: '', defaultSubtitle: '' };
 
   switch (status) {
     case 'success':
-      config = { bg: theme.colors.successBg, icon: <Check size={20} color={theme.colors.success} />, defaultTitle: 'Tudo sincronizado', defaultSubtitle: 'Online — novos registros serão sincronizados automaticamente.' };
+      config = { bg: theme.colors.successBg, icon: <Check size={20} color={theme.colors.success} />, defaultTitle: t('components.syncAllSynced'), defaultSubtitle: t('components.syncAllSyncedSub') };
       break;
     case 'offline':
-      config = { bg: theme.colors.offlineBg, icon: <WifiOff size={20} color={theme.colors.offlineText} />, defaultTitle: 'Você está offline', defaultSubtitle: 'Pode continuar registrando — seus registros estão seguros neste dispositivo e serão enviados quando a conexão voltar.' };
+      config = { bg: theme.colors.offlineBg, icon: <WifiOff size={20} color={theme.colors.offlineText} />, defaultTitle: t('components.syncOffline'), defaultSubtitle: t('components.syncOfflineSub') };
       break;
     case 'syncing':
-      config = { bg: theme.colors.syncingBg, icon: <RefreshCw size={20} color={theme.colors.syncing} />, defaultTitle: 'Sincronizando registros…', defaultSubtitle: 'Enviando registros pendentes. Você pode continuar usando o app.' };
+      config = { bg: theme.colors.syncingBg, icon: <RefreshCw size={20} color={theme.colors.syncing} />, defaultTitle: t('components.syncingRecords'), defaultSubtitle: t('components.syncingSub') };
       break;
     case 'error':
-      config = { bg: theme.colors.errorBg, icon: <AlertTriangle size={20} color={theme.colors.error} />, defaultTitle: 'Não foi possível sincronizar agora', defaultSubtitle: 'Seus dados continuam salvos neste dispositivo. Toque para tentar novamente.' };
+      config = { bg: theme.colors.errorBg, icon: <AlertTriangle size={20} color={theme.colors.error} />, defaultTitle: t('components.syncError'), defaultSubtitle: t('components.syncErrorSub') };
       break;
   }
 
@@ -34,7 +38,7 @@ export function StatusCard({ status, title, subtitle, onPress, progress }: Statu
       <View style={styles.iconContainer}>{config.icon}</View>
       <View style={styles.textContainer}>
         <Text style={[styles.title, { color: status === 'offline' ? theme.colors.offlineText : status === 'error' ? theme.colors.error : theme.colors.text }]}>{title || config.defaultTitle}</Text>
-        <Text style={[styles.subtitle, { color: status === 'offline' ? theme.colors.offlineText : status === 'error' ? theme.colors.error : theme.colors.textSecondary }]}>{subtitle || config.defaultSubtitle}</Text>
+        <Text style={[styles.subtitle, { color: status === 'offline' ? theme.colors.offlineCardSupportText : status === 'error' ? theme.colors.errorBannerText : theme.colors.textSecondary }]}>{subtitle || config.defaultSubtitle}</Text>
         {status === 'syncing' && progress !== undefined && (
           <View style={styles.progressTrack}>
              <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
@@ -51,7 +55,7 @@ export function StatusCard({ status, title, subtitle, onPress, progress }: Statu
   return Content;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     padding: 14,

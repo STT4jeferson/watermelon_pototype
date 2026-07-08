@@ -8,6 +8,10 @@ export type LocalSession = {
     login: string;
     empresaId: number;
   };
+  lastSync?: string;
+  avatarUri?: string;
+  theme?: 'light' | 'dark';
+  language?: 'pt' | 'en' | 'es';
 };
 
 const SESSION_KEY = 'app_session';

@@ -21,6 +21,9 @@ export class Usuario extends Model {
 
 export class FotoRegistro extends Model {
   static table = 'foto_registros'
+  static associations = {
+    registros: { type: 'belongs_to' as const, key: 'registro_id' },
+  }
 
   @text('registro_id') registroId!: string
   @field('empresa_id') empresaId!: number
@@ -29,7 +32,7 @@ export class FotoRegistro extends Model {
   @text('remote_url') remoteUrl!: string
   @text('mime_type') mimeType!: string
   @text('file_name') fileName!: string
-  @text('status') status!: string
+  @text('sync_status') status!: string
   @date('created_at') createdAt!: Date
   @date('updated_at') updatedAt!: Date
 
@@ -47,7 +50,7 @@ export class Registro extends Model {
   @text('tipo') tipo!: string
   @date('data_hora') dataHora!: Date
   @text('descricao') descricao!: string
-  @text('status') status!: string
+  @text('sync_status') status!: string
   @date('created_at') createdAt!: Date
   @date('updated_at') updatedAt!: Date
 

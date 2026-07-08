@@ -1,12 +1,17 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Cloud, Eye, EyeOff, AlertTriangle } from 'lucide-react-native';
-import { theme } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
 import { Button } from '../components/Button';
 import { useNavigation } from '@react-navigation/native';
 import { storage } from '../../infra/storage';
 
 export function LoginScreen() {
+  const { t } = useTranslation();
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+  const styles = createStyles(theme);
   const navigation = useNavigation<any>();
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
@@ -16,71 +21,94 @@ export function LoginScreen() {
 
   const handleLogin = async () => {
     if (!login || !password) {
-      setError('Informe seu login ou e-mail e senha.');
+      setError(t('login.errorMissing'));
       return;
     }
     setLoading(true);
-    setTimeout(async () => {
-      setLoading(false);
+    
+    try {
+      // Como o usuário está rodando com ADB (USB Reverso/Forwarding ou Host IP)
+      // Mapeamos para localhost ou IP de rede (como o adb reverse redireciona as portas)
+      // Se não houver adb reverse, o celular físico precisará do IP da máquina na rede.
+      // Usaremos o IP retornado pelo servidor: 192.168.15.24 que estava nos logs do backend.
+      const baseUrl = 'http://192.168.15.24:3333';
       
-      // Lógica mock: Se o login tiver 'b', loga como Usuário B, senão Usuário A
-      const isUserB = login.toLowerCase().includes('b');
-      const userId = isUserB ? 2 : 1;
-      const userName = isUserB ? 'Usuário B' : 'Usuário A';
+      const res = await fetch(`${baseUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login, senha: password })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || t('login.errorInvalid'));
+      }
 
       await storage.saveSession({ 
-        token: 'fake-jwt-token', 
-        user: { id: userId, nome: userName, login: login, empresaId: 1 } 
+        token: data.token, 
+        user: { 
+           id: data.user.id, 
+           nome: data.user.nome, 
+           login: data.user.login, 
+           empresaId: data.user.empresaId 
+        } 
       });
       navigation.replace('Home');
-    }, 1000);
+    } catch (e: any) {
+      setError(e.message || t('login.errorLogin'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.logoContainer}>
         <View style={styles.logoWrapper}>
           <Cloud size={28} color={theme.colors.surface} />
         </View>
       </View>
       
-      <Text style={styles.title}>Acesse sua conta</Text>
-      <Text style={styles.subtitle}>Registre compras e vendas mesmo sem internet.</Text>
+      <Text style={styles.title}>{t('login.title')}</Text>
+      <Text style={styles.subtitle}>{t('login.subtitle')}</Text>
 
       {error ? (
         <View style={styles.errorBanner}>
           <Text style={styles.errorBannerText}>
-            <Text style={{ fontWeight: '700' }}>Login ou senha inválidos.</Text> Verifique os dados e tente novamente.
+            <Text style={{ fontWeight: '700' }}>{t('login.invalidBanner')}</Text> {t('login.invalidCheck')}
           </Text>
         </View>
       ) : null}
 
       <View style={styles.form}>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Login ou e-mail</Text>
+          <Text style={styles.label}>{t('login.loginLabel')}</Text>
           <TextInput 
             style={[styles.input, error && !login && styles.inputError]}
             value={login}
             onChangeText={(t) => { setLogin(t); setError(''); }}
-            placeholder="Digite seu login"
+            placeholder={t('login.loginPlaceholder')}
+            placeholderTextColor={theme.colors.textMuted}
             editable={!loading}
           />
           {error && !login && (
             <View style={styles.errorRow}>
               <AlertTriangle size={12} color={theme.colors.error} />
-              <Text style={styles.errorText}>Informe seu login ou e-mail</Text>
+              <Text style={styles.errorText}>{t('login.loginError')}</Text>
             </View>
           )}
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Senha</Text>
+          <Text style={styles.label}>{t('login.passwordLabel')}</Text>
           <View style={styles.passwordWrapper}>
             <TextInput 
               style={[styles.input, styles.passwordInput, error && !password && styles.inputError]}
               value={password}
               onChangeText={(t) => { setPassword(t); setError(''); }}
-              placeholder="Digite sua senha"
+              placeholder={t('login.passwordPlaceholder')}
+            placeholderTextColor={theme.colors.textMuted}
               secureTextEntry={!showPassword}
               editable={!loading}
             />
@@ -91,15 +119,15 @@ export function LoginScreen() {
               {showPassword ? <EyeOff size={20} color={theme.colors.primary} /> : <Eye size={20} color={theme.colors.textSecondary} />}
             </TouchableOpacity>
           </View>
-          {showPassword && <Text style={styles.hintText}>Toque no olho para ocultar a senha</Text>}
+          {showPassword && <Text style={styles.hintText}>{t('login.passwordHint')}</Text>}
         </View>
 
         <TouchableOpacity style={styles.forgotPassword}>
-          <Text style={styles.forgotPasswordText}>Esqueci minha senha</Text>
+          <Text style={styles.forgotPasswordText}>{t('login.forgotPassword')}</Text>
         </TouchableOpacity>
 
         <Button 
-          title={loading ? "Entrando…" : "Entrar"} 
+          title={loading ? t('login.entering') : t('login.enter')} 
           onPress={handleLogin} 
           loading={loading}
           style={styles.loginBtn}
@@ -107,11 +135,11 @@ export function LoginScreen() {
       </View>
 
       <Text style={styles.footer}>v1.0.0</Text>
-    </View>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,

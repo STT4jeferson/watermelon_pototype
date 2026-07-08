@@ -1,11 +1,14 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Check, Clock, AlertTriangle } from 'lucide-react-native';
-import { theme } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
 
 export type SyncStatus = 'synced' | 'pending' | 'syncing' | 'error';
 
 export function SyncBadge({ status }: { status: SyncStatus }) {
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+  const styles = createStyles(theme);
   let config = { bg: '', icon: null as any };
 
   switch (status) {
@@ -30,7 +33,7 @@ export function SyncBadge({ status }: { status: SyncStatus }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     width: 20,
     height: 20,

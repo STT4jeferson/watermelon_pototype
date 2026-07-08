@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, ActivityIndicator, StyleSheet, View } from 'react-native';
-import { theme } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
 
 type ButtonProps = {
   title: string;
@@ -14,6 +14,8 @@ type ButtonProps = {
 };
 
 export function Button({ title, onPress, variant = 'primary', loading, disabled, icon, sublabel, style }: ButtonProps) {
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+  const styles = createStyles(theme);
   const isPrimary = variant === 'primary';
   const isSecondary = variant === 'secondary';
   const isDisabled = disabled || variant === 'disabled';
@@ -41,7 +43,7 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
       activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator color={isPrimary ? theme.colors.surface : theme.colors.primary} />
+        <ActivityIndicator color={isPrimary ? theme.colors.onPrimary : theme.colors.primary} />
       ) : (
         <View style={styles.content}>
           {icon && <View style={styles.iconContainer}>{icon}</View>}
@@ -55,7 +57,7 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     height: 52,
     borderRadius: theme.radius.button,
@@ -82,7 +84,7 @@ const styles = StyleSheet.create({
   secondary: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#B9D6D0',
+    borderColor: theme.colors.outlineBtnBorder,
   },
   disabled: {
     backgroundColor: theme.colors.disabledBtnBg,
@@ -92,10 +94,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   textPrimary: {
-    color: theme.colors.surface,
+    color: theme.colors.onPrimary,
   },
   textSecondary: {
-    color: theme.colors.primary,
+    color: theme.colors.outlineBtnText,
   },
   textDisabled: {
     color: theme.colors.disabledBtnText,

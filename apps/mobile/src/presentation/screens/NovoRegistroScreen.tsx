@@ -1,11 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { ArrowDown, ArrowUp, Calendar, Clock, Camera, Image as ImageIcon } from 'lucide-react-native';
-import { theme } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
 import { Button } from '../components/Button';
 import { PhotoThumb } from '../components/PhotoThumb';
 import { useNavigation } from '@react-navigation/native';
-import NetInfo from '@react-native-community/netinfo';
+import { useNetInfo } from '@react-native-community/netinfo';
 import { ConnectionStatus } from '../components/ConnectionStatus';
 import * as ImagePicker from 'expo-image-picker';
 import { database } from '../../database';
@@ -13,19 +14,18 @@ import { Registro, FotoRegistro } from '../../database/models';
 import { storage } from '../../infra/storage';
 
 export function NovoRegistroScreen() {
+  const { t } = useTranslation();
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+  const styles = createStyles(theme);
   const navigation = useNavigation<any>();
   const [type, setType] = useState<'Compra' | 'Venda' | null>(null);
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
+  const netInfo = useNetInfo();
+  const isOnline = netInfo.isConnected !== false && netInfo.isInternetReachable !== false;
 
-  React.useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsOnline(!!state.isConnected);
-    });
-    return () => unsubscribe();
-  }, []);
+  
 
   const date = new Date().toLocaleDateString('pt-BR');
   const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -117,14 +117,14 @@ export function NovoRegistroScreen() {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Tipo</Text>
+          <Text style={styles.label}>{t('form.type')}</Text>
           <View style={styles.typeRow}>
             <TouchableOpacity 
               style={[styles.typeCard, type === 'Compra' && styles.typeCardSelected]}
               onPress={() => setType('Compra')}
             >
               <ArrowDown size={20} color={type === 'Compra' ? theme.colors.primary : theme.colors.textSecondary} />
-              <Text style={[styles.typeText, type === 'Compra' && styles.typeTextSelected]}>Compra</Text>
+              <Text style={[styles.typeText, type === 'Compra' && styles.typeTextSelected]}>{t('form.purchase')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -132,13 +132,13 @@ export function NovoRegistroScreen() {
               onPress={() => setType('Venda')}
             >
               <ArrowUp size={20} color={type === 'Venda' ? theme.colors.primary : theme.colors.textSecondary} />
-              <Text style={[styles.typeText, type === 'Venda' && styles.typeTextSelected]}>Venda</Text>
+              <Text style={[styles.typeText, type === 'Venda' && styles.typeTextSelected]}>{t('form.sale')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Data e hora</Text>
+          <Text style={styles.label}>{t('form.dateTime')}</Text>
           <View style={styles.dateTimeRow}>
             <View style={[styles.inputContainer, { flex: 1.3 }]}>
               <Calendar size={18} color={theme.colors.textSecondary} />
@@ -149,27 +149,28 @@ export function NovoRegistroScreen() {
               <Text style={styles.inputText}>{time}</Text>
             </View>
           </View>
-          <Text style={styles.hint}>Preenchido automaticamente — toque para ajustar</Text>
+          <Text style={styles.hint}>{t('form.dateHint')}</Text>
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Descrição</Text>
+          <Text style={styles.label}>{t('form.desc')}</Text>
           <TextInput 
             style={[styles.textarea, description.length > 0 && (descValid ? styles.inputValid : styles.inputError)]}
             multiline
             numberOfLines={4}
-            placeholder="Detalhes do registro"
+            placeholder={t('form.descPlaceholder')}
+            placeholderTextColor={theme.colors.textMuted}
             value={description}
             onChangeText={setDescription}
             textAlignVertical="top"
           />
           <View style={styles.descFooter}>
             {description.length > 0 && !descValid ? (
-              <Text style={styles.errorText}>A descrição precisa de pelo menos 10 caracteres</Text>
+              <Text style={styles.errorText}>{t('form.descError')}</Text>
             ) : description.length > 0 && descValid ? (
-              <Text style={styles.validText}>✓ Descrição válida</Text>
+              <Text style={styles.validText}>{t('form.descValid')}</Text>
             ) : (
-              <Text style={styles.hint}>Mínimo de 10 caracteres</Text>
+              <Text style={styles.hint}>{t('form.descHint')}</Text>
             )}
             <Text style={[styles.charCount, (!descValid && description.length > 0) && styles.charCountError]}>
               {description.length}/500
@@ -178,18 +179,18 @@ export function NovoRegistroScreen() {
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Fotos</Text>
+          <Text style={styles.label}>{t('form.photos')}</Text>
           <View style={styles.photoActions}>
             <TouchableOpacity style={styles.photoBtn} onPress={handleTakePhoto}>
               <Camera size={18} color={theme.colors.primary} />
-              <Text style={styles.photoBtnText}>Tirar foto</Text>
+              <Text style={styles.photoBtnText}>{t('form.takePhoto')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.photoBtn} onPress={handlePickImage}>
               <ImageIcon size={18} color={theme.colors.primary} />
-              <Text style={styles.photoBtnText}>Galeria</Text>
+              <Text style={styles.photoBtnText}>{t('form.gallery')}</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.hint}>As fotos ficam salvas no dispositivo e são enviadas na sincronização</Text>
+          <Text style={styles.hint}>{t('form.photosHint')}</Text>
           
           <View style={styles.photosGrid}>
             {photos.map((uri, index) => (
@@ -202,21 +203,21 @@ export function NovoRegistroScreen() {
 
       <View style={styles.footer}>
         <Button 
-          title={loading ? "Salvando…" : "Salvar registro"}
+          title={loading ? t('form.saving') : t('form.saveRecord')}
           onPress={handleSave}
           disabled={!isFormValid}
           loading={loading}
           style={styles.saveBtn}
         />
         <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.cancelBtnText}>Cancelar</Text>
+          <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
