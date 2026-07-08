@@ -79,7 +79,8 @@ export function LoginScreen() {
           id: userProfile.id,
           nome: userProfile.nome,
           login: userProfile.login,
-          empresaId: userProfile.empresa.id
+          empresaId: userProfile.empresa.id,
+          empresaNome: userProfile.empresa.nome
         }
       });
 

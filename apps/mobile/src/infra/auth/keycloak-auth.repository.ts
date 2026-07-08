@@ -8,12 +8,14 @@ import { jwtDecode } from 'jwt-decode';
 WebBrowser.maybeCompleteAuthSession();
 
 export class KeycloakAuthRepository implements AuthRepository {
-  private discovery = {
-    authorizationEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/auth`,
-    tokenEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/token`,
-    revocationEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/revoke`,
-    discoveryDocument: `${KEYCLOAK_CONFIG.issuer}/.well-known/openid-configuration`
-  };
+  private get discovery() {
+    return {
+      authorizationEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/auth`,
+      tokenEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/token`,
+      revocationEndpoint: `${KEYCLOAK_CONFIG.issuer}/protocol/openid-connect/revoke`,
+      discoveryDocument: `${KEYCLOAK_CONFIG.issuer}/.well-known/openid-configuration`
+    };
+  }
 
   async signIn(): Promise<AuthSessionType> {
     const redirectUri = AuthSession.makeRedirectUri({

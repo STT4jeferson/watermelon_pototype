@@ -4,6 +4,9 @@ Este é um protótipo completo de aplicativo mobile offline-first construído co
 
 O sistema implementa o isolamento de dados por empresa e o fluxo de sincronização offline-first (`pullChanges` / `pushChanges`) com suporte a uploads de fotos.
 
+> 💡 **Aviso para Testadores e Engenheiros:**
+> Antes de testar o app ou caso queira entender o "porquê" de cada tecnologia escolhida (como a sincronização do WatermelonDB e o JIT Provisioning do Keycloak), leia obrigatoriamente o documento oficial de arquitetura: **[Ler Arquitetura do Protótipo (ADR)](./arquitetura_prototipo.md)**.
+
 ## Requisitos
 
 - Node.js (v18+)
@@ -48,15 +51,24 @@ Este comando automatiza todo o setup:
 5. Para atribuir o usuário a uma empresa, o Backend valida os atributos customizados vinculados a ele.
 
 #### Como acessar o Banco de Dados (MySQL) para validar o Sync
-Para confirmar visualmente se o aplicativo sincronizou os dados offline com o servidor, o testador pode se conectar diretamente ao banco de dados local usando ferramentas visuais como **DBeaver**, **MySQL Workbench**, **DataGrip** ou a própria extensão de Banco de Dados do VS Code.
+Para confirmar visualmente se o aplicativo sincronizou os dados offline com o servidor na máquina que está rodando a infraestrutura, você tem dois caminhos fáceis:
 
+**Método 1: Via Prisma Studio (Recomendado e mais rápido)**
+O backend possui um painel administrativo web próprio, sem precisar instalar nenhum software:
+1. Abra um novo terminal na pasta `apps/backend`.
+2. Digite: `npx prisma studio`
+3. O painel abrirá instantaneamente no seu navegador no endereço `http://localhost:5555`. Lá você pode clicar na tabela "Registros" ou "Empresas" e ver os dados de forma visual.
+
+**Método 2: Via Software Clássico (DBeaver, Workbench)**
+Se você preferir usar uma ferramenta SQL ou o painel de banco de dados do seu Visual Studio Code:
 - **Host**: `localhost` (ou o IP da sua máquina)
 - **Porta**: `3306`
 - **Database**: `watermelon_db`
 - **Usuário**: `watermelon_user`
 - **Senha**: `watermelon_password`
 
-*Dica de Teste:* Após fazer um cadastro offline no celular (no modo avião, por exemplo), reconecte, aperte para Sincronizar no app e, em seguida, dê um `SELECT * FROM registros;` (ou abra a tabela `registros` e `foto_registros` no seu gerenciador de banco). Os dados aparecerão no banco do backend na mesma hora.
+*Dica de QA:* 
+A melhor forma de provar o fluxo é abrir o Prisma Studio e ver que a tabela está vazia. Coloque o celular em Modo Avião (sem internet), faça uma venda, tire do Modo Avião, dê um refresh na tela do App e depois atualize o navegador do Prisma Studio no PC. O dado deve subir na mesma hora!
 
 ### 3. Rodando o Aplicativo Móvel (.APK ou Código Fonte)
 
@@ -68,13 +80,18 @@ Se você recebeu o `.apk` compilado:
 5. Digite o IP da sua máquina e clique em "Salvar Configuração".
 6. Clique em **Entrar com Keycloak**. O App já saberá onde localizar os seus containers.
 
-*Se quiser rodar a partir do código fonte (necessário prebuild do WatermelonDB):*
+*Se quiser compilar e rodar a partir do código-fonte (em vez de usar o APK):*
+Como o projeto possui bibliotecas nativas profundas (SQLite/Watermelon e Câmera), **ele não roda apenas com o app "Expo Go" padrão**. Você precisa ter um ambiente Android configurado:
+1. Conecte um celular físico ao computador via cabo USB.
+2. Certifique-se de que a **Depuração USB (USB Debugging)** está ativada nas Opções de Desenvolvedor do seu celular.
+3. No terminal, execute a instalação e a compilação do zero:
 ```bash
 cd apps/mobile
-npm install
+npx expo install
 npx expo prebuild --clean
 npx expo run:android
 ```
+*(Esse comando vai baixar as dependências, montar a pasta `android` localmente, invocar o Gradle, compilar o App no seu computador e instalá-lo no celular conectado via cabo).*
 
 ---
 

@@ -7,6 +7,7 @@ export type LocalSession = {
     nome: string;
     login: string;
     empresaId: number;
+    empresaNome?: string;
   };
   lastSync?: string;
   avatarUri?: string;

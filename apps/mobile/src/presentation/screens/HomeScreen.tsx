@@ -82,7 +82,7 @@ export function HomeScreen() {
       
       if (session?.user) {
         setUserName(session.user.nome);
-        setCompanyName('Empresa A'); // TODO: get from session
+        setCompanyName(session.user.empresaNome || 'Empresa Indefinida'); 
         if (session.avatarUri) setAvatarUri(session.avatarUri);
         
         const currentUserId = session.user.id;
