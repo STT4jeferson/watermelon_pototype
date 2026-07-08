@@ -11,15 +11,17 @@ setup:
 	@cd apps/backend && npm install
 
 up: setup
-	@echo "==> 3. Subindo infraestrutura via Docker (Keycloak, MySQL, Postgres)..."
+	@echo "==> 3. Descobrindo IP da rede e atualizando .env local..."
+	@cd apps/backend && node scripts/show-qr.js > /dev/null 2>&1
+	@echo "==> 4. Subindo infraestrutura via Docker (Keycloak, MySQL, Postgres)..."
 	docker compose up -d
-	@echo "==> 4. Aguardando os bancos de dados iniciarem (15s)..."
+	@echo "==> 5. Aguardando os bancos de dados iniciarem (15s)..."
 	@sleep 15
-	@echo "==> 5. Executando Migrations e Seed no Backend..."
+	@echo "==> 6. Executando Migrations e Seed no Backend..."
 	@cd apps/backend && npx prisma db push --accept-data-loss && npx tsx prisma/seed.ts
-	@echo "==> 6. Exibindo QR Code de Conexão..."
+	@echo "==> 7. Exibindo QR Code de Conexão..."
 	@cd apps/backend && node scripts/show-qr.js
-	@echo "==> 7. Iniciando o Backend na porta 3333..."
+	@echo "==> 8. Iniciando o Backend na porta 3333..."
 	@cd apps/backend && npm run dev
 
 down:
