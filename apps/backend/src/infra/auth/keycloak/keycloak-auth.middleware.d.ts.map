@@ -1,0 +1,1 @@
+{"version":3,"file":"keycloak-auth.middleware.d.ts","sourceRoot":"","sources":["keycloak-auth.middleware.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,cAAc,EAAE,YAAY,EAAE,MAAM,SAAS,CAAC;AAGvD,OAAO,8BAA8B,CAAC;AAItC,wBAAsB,sBAAsB,CAC1C,OAAO,EAAE,cAAc,EACvB,KAAK,EAAE,YAAY,sBA0CpB"}

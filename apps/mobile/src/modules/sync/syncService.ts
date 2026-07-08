@@ -20,14 +20,14 @@ export async function syncData(onProgress?: (progress: SyncProgress) => void) {
     await synchronize({
       database,
       pullChanges: async ({ lastPulledAt, schemaVersion, migration }) => {
-        const response = await api.get(`/sync?lastPulledAt=${lastPulledAt || 0}`);
+        const response = await api.get(`/sync/pull?lastPulledAt=${lastPulledAt || 0}`);
         return {
           changes: response.changes,
           timestamp: response.timestamp,
         };
       },
       pushChanges: async ({ changes, lastPulledAt }) => {
-        await api.post('/sync', { changes, lastPulledAt });
+        await api.post('/sync/push', { changes, lastPulledAt });
       },
     });
 

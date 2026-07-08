@@ -1,109 +1,141 @@
-# Protótipo Mobile Offline-First com WatermelonDB
+# Protótipo Mobile Offline-First com WatermelonDB + Keycloak
 
-Este é um protótipo completo de aplicativo mobile offline-first construído com **Expo (React Native), TypeScript, WatermelonDB**, acompanhado de um backend em **Fastify (Node.js), Prisma e MySQL**.
+Este é um protótipo completo de aplicativo mobile offline-first construído com **Expo (React Native), TypeScript, WatermelonDB**, acompanhado de um backend em **Fastify (Node.js), Prisma e MySQL**, e que agora conta com **Keycloak** para gestão centralizada de autenticação, usuários e tokens.
 
-O sistema implementa o isolamento de dados por empresa e o fluxo de sincronização offline-first (`pullChanges` / `pushChanges`) com suporte a uploads de fotos associadas aos registros de maneira transacional e resiliente.
+O sistema implementa o isolamento de dados por empresa e o fluxo de sincronização offline-first (`pullChanges` / `pushChanges`) com suporte a uploads de fotos.
 
 ## Requisitos
 
 - Node.js (v18+)
 - npm, yarn ou pnpm
-- Docker e Docker Compose (para banco de dados MySQL local)
-- Expo CLI (`npm i -g expo-cli` ou via `npx`)
+- Docker e Docker Compose
 - Android Studio / Emulador ou Dispositivo Físico configurado
+- (Opcional) Expo CLI para rodar fonte `npm i -g expo-cli`
 
 ---
 
-## Como subir o Backend
+## Passo a Passo para Testadores
 
-O backend foi construído com Fastify, Prisma e MySQL.
+Se você recebeu este projeto para testes ou avaliação de integração, o ambiente pode ser levantado em **um único comando**.
 
-1. Navegue até a pasta do backend:
-   ```bash
-   cd apps/backend
-   ```
-2. Instale as dependências:
-   ```bash
-   npm install
-   ```
-3. Inicie o MySQL via Docker Compose (na raiz do projeto):
-   ```bash
-   cd ../../
-   docker compose up -d
-   cd apps/backend
-   ```
-4. Crie o arquivo `.env` (ou copie de `.env.example` da raiz):
-   ```bash
-   cp ../../.env.example .env
-   ```
-5. Rode as migrations e popule o banco (Seeds):
-   ```bash
-   npx prisma migrate dev
-   npx tsx prisma/seed.ts
-   ```
-6. Inicie o servidor em modo de desenvolvimento:
-   ```bash
-   npm run dev
-   ```
-   > O servidor estará rodando em `http://localhost:3333`. (Para o emulador Android, a requisição no app é feita para `http://10.0.2.2:3333`).
+### 1. Subindo a infraestrutura 
 
----
+Na raiz do projeto (onde está o arquivo `Makefile`), abra o seu terminal e execute:
 
-## Como rodar o App (Mobile)
+```bash
+make up
+```
 
-O App mobile foi construído usando o template TypeScript do Expo e utiliza o **WatermelonDB**.
-Devido ao uso de dependências nativas pelo WatermelonDB, **o projeto não roda no Expo Go puro**. É necessário fazer a build de desenvolvimento.
+Este comando automatiza todo o setup:
+1. Copia o arquivo `.env` para o mobile e para o backend.
+2. Instala as dependências Node do Backend.
+3. Sobe os bancos de dados e o **Keycloak** via Docker.
+4. Aguarda inicialização, roda as `migrations` (Prisma) e faz o `seed` dos usuários de teste.
+5. Inicia o servidor Web (Backend) expondo a porta `3333`.
 
-1. Navegue até a pasta do mobile:
-   ```bash
-   cd apps/mobile
-   ```
-2. Instale as dependências:
-   ```bash
-   npm install
-   ```
-3. Crie a pasta `android` / `ios` nativa:
-   ```bash
-   npx expo prebuild
-   ```
-4. Execute o aplicativo (exemplo no Android):
-   ```bash
-   npx expo run:android
-   ```
-   *Ou inicie o Dev Client:*
-   ```bash
-   npx expo start --dev-client
-   ```
+### 2. Acessos locais na máquina
 
----
+- **Backend API**: `http://localhost:3333`
+- **Keycloak Web Admin**: `http://localhost:8080`
+  - *Login Admin:* `admin` | *Senha:* `admin`
+  - *Lembrete:* Ao logar, troque o Realm de "master" para **"watermelon-local"** (no menu dropdown no canto superior esquerdo). É dentro deste Realm que a aplicação funciona.
 
-## Como testar Login e Isolamento por Empresa
+#### Como gerenciar Usuários e Roles no Keycloak (Manager)
+1. Acesse o painel Admin do Keycloak em `http://localhost:8080` com `admin`/`admin`.
+2. Garanta que você está no Realm **watermelon-local**.
+3. No menu lateral esquerdo, clique em **Users** para listar, buscar ou adicionar novos usuários. 
+4. Ao criar um usuário, acesse a aba **Credentials** dele para definir uma senha (desmarque "Temporary" para que ele não precise trocar no primeiro login).
+5. Para atribuir o usuário a uma empresa, o Backend valida os atributos customizados vinculados a ele.
 
-O *Seed* do Prisma criou duas empresas e dois usuários distintos no banco de dados.
+#### Como acessar o Banco de Dados (MySQL) para validar o Sync
+Para confirmar visualmente se o aplicativo sincronizou os dados offline com o servidor, o testador pode se conectar diretamente ao banco de dados local usando ferramentas visuais como **DBeaver**, **MySQL Workbench**, **DataGrip** ou a própria extensão de Banco de Dados do VS Code.
 
-**Usuário da Empresa A:**
-- Login: `usuario_a`
-- Senha: `123456`
+- **Host**: `localhost` (ou o IP da sua máquina)
+- **Porta**: `3306`
+- **Database**: `watermelon_db`
+- **Usuário**: `watermelon_user`
+- **Senha**: `watermelon_password`
 
-**Usuário da Empresa B:**
-- Login: `usuario_b`
-- Senha: `123456`
+*Dica de Teste:* Após fazer um cadastro offline no celular (no modo avião, por exemplo), reconecte, aperte para Sincronizar no app e, em seguida, dê um `SELECT * FROM registros;` (ou abra a tabela `registros` e `foto_registros` no seu gerenciador de banco). Os dados aparecerão no banco do backend na mesma hora.
 
-- O backend valida cada token e restringe a visibilidade. Ao autenticar com o usuário da Empresa A, todas as operações (busca, sincronização, criação) afetam **apenas** a Empresa A. O mesmo vale para a Empresa B.
+### 3. Rodando o Aplicativo Móvel (.APK ou Código Fonte)
+
+Se você recebeu o `.apk` compilado:
+1. Instale o APK no seu aparelho Android ou emulador.
+2. Certifique-se que o celular/emulador e a máquina rodando o `make up` estão **na mesma rede Wi-Fi/LAN**.
+3. Descubra o IP da sua máquina rodando o Docker. (No Windows abra o `cmd` e digite `ipconfig`. No Linux/Mac digite `hostname -I` ou `ifconfig`). O IP geralmente começa com `192.168...` ou `10.0...`.
+4. Abra o App no celular. Na tela de Login, **toque na Engrenagem no canto superior direito**.
+5. Digite o IP da sua máquina e clique em "Salvar Configuração".
+6. Clique em **Entrar com Keycloak**. O App já saberá onde localizar os seus containers.
+
+*Se quiser rodar a partir do código fonte (necessário prebuild do WatermelonDB):*
+```bash
+cd apps/mobile
+npm install
+npx expo prebuild --clean
+npx expo run:android
+```
 
 ---
 
-## Como testar Offline / Online
+## Como testar Autenticação e Offline-first
 
-1. Suba o backend e o app conforme os passos acima.
-2. Faça login no app usando `usuario_a`.
-3. Crie um novo registro com a rede ativa. Ele será sincronizado imediatamente com o backend.
-4. **Ative o modo avião** no emulador ou dispositivo.
-5. Crie novos registros offline.
-6. Anexe fotos nesses registros (da galeria ou câmera).
-7. Note na lista da tela inicial que o registro aparece com o status de **Pendente de sincronização**.
-8. **Desative o modo avião**.
-9. O status da conexão mudará para "Online". Clique no botão **"Sincronizar Manualmente"** ou aguarde uma sincronização automática.
-10. O status dos registros locais irá mudar para `synced`. E as fotos estarão fisicamente na pasta `uploads/` do seu backend, com a URL devidamente salva no MySQL.
-11. Faça Logout.
-12. Faça Login com `usuario_b` e confirme que ele não consegue ver os registros da Empresa A.
+### 1. Usuários de Teste
+
+O script `make up` importou os seguintes usuários no Keycloak e no banco de dados da aplicação:
+
+- **Usuário A (Empresa A):** `joao@teste.com` / Senha: `123`
+- **Usuário B (Empresa B):** `maria@teste.com` / Senha: `123`
+
+#### Como criar Novas Empresas e Novos Usuários
+Para usar o isolamento multi-tenant dinâmico do projeto, você só precisa usar o painel do Keycloak:
+1. Abra `http://localhost:8080` (admin/admin).
+2. Vá no menu esquerdo e clique em **Groups**.
+3. Crie um grupo novo (Ex: `Supermercado XYZ`).
+4. Vá no menu **Users** e crie um novo usuário.
+5. Na aba *Credentials* do usuário novo, cadastre uma senha (desmarcando "Temporary").
+6. Na aba *Groups* do usuário novo, clique para colocá-lo dentro do grupo `Supermercado XYZ`.
+
+**A Mágica:** Na próxima vez que esse usuário logar no aplicativo de celular, o backend interceptará esse novo Grupo, criará automaticamente a empresa `Supermercado XYZ` no banco de dados MySQL e o vinculará. Totalmente *plug-and-play*!
+
+### 2. Testando Login e Multi-tenant
+1. Clique em **Entrar com Keycloak** no aplicativo móvel.
+2. Faça o login utilizando o **Usuário A** no navegador interno que será aberto.
+3. Após ser redirecionado de volta, crie um registro e salve.
+4. Vá em `Perfil` > `Sair`.
+5. Faça login com o **Usuário B**. Confirme que você não tem acesso aos registros do Usuário A. O Backend resolve isso internamente validando o JWT (`keycloak_id`) e injetando o filtro de Empresa no WatermelonDB, mantendo um isolamento seguro de multilocatário.
+
+### 3. Testando comportamento Offline
+1. Logado como Usuário A, desligue a internet / coloque o celular no modo avião.
+2. Crie registros com Fotos. A criação prosseguirá perfeitamente porque o SQLite/WatermelonDB salva localmente com `syncStatus='pending'` e as fotos ficam salvas fisicamente na pasta do celular.
+3. Ligue a internet novamente.
+4. Na Home do app, clique no botão redondo de Sincronizar. O app chamará os endpoints seguros usando seu AccessToken emitido pelo Keycloak.
+5. Verifique o banco `MySQL` ou a tela e comprove que o seu dado offline subiu com segurança.
+
+---
+
+## Troubleshooting de redirect OIDC (Keycloak)
+
+| Sintoma | Causa provável | Correção |
+|---|---|---|
+| `page not found` após login | URL errada no Realm do Keycloak | O RedirectURI deve constar no Realm do Keycloak (que já importamos via docker-compose). |
+| App não volta após login | `scheme` não registrado ou app não rebuildado | Se recompilar, rodar `npx expo prebuild --clean` novamente. |
+| Erro de carregamento/Login falha | App está tentando buscar o `localhost` | No .APK ou app, sempre use o botão da Engrenagem para indicar o IP da rede local da máquina que está rodando o `make up`. |
+| Backend rejeita token | `audience invalid` | Configuramos a flag azp e checagem tolerante no verificador JWT para suportar clients nativos PKCE. |
+
+---
+
+## Como parar a aplicação
+
+No terminal onde executou `make up`, pare a execução do servidor (`Ctrl+C`).
+Se quiser desligar o Docker e os bancos de dados:
+
+```bash
+make down
+```
+
+Se quiser reiniciar a estrutura do zero perdendo todos os dados inseridos (Destrutivo):
+
+```bash
+make clean
+```

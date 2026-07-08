@@ -31,11 +31,35 @@ function MainApp() {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
 
   useEffect(() => {
-    storage.getSession().then(session => {
-      if (session?.language) i18n.changeLanguage(session.language);
-      setTimeout(() => {
-        setInitialRoute(session?.token ? 'Home' : 'Login');
-      }, 1500); // Simulate splash screen time
+    // Restauramos a sessão pelo novo sistema (Keycloak Repository)
+    storage.getSession().then(async sessionLegacy => {
+      if (sessionLegacy?.language) i18n.changeLanguage(sessionLegacy.language);
+      
+      try {
+        const { loadDynamicIp } = await import('./src/infra/auth/keycloak.config');
+        await loadDynamicIp();
+
+        const { KeycloakAuthRepository } = await import('./src/infra/auth/keycloak-auth.repository');
+        const authRepo = new KeycloakAuthRepository();
+        const session = await authRepo.restoreSession();
+        
+        // Ensure legacy session and new session match / clear if invalid token
+        if (!session && sessionLegacy) {
+          await storage.clearSession();
+        }
+
+        // Drop da base sqlite legada apenas se houver conflito de esquema no SQLiteAdapter 
+        // mas o dev-client normalmente limpa quando rodamos no Android nativo limpando dados
+        // ou recriando a versão
+
+        setTimeout(() => {
+          setInitialRoute(session && sessionLegacy?.user ? 'Home' : 'Login');
+        }, 1500); // Simulate splash screen time
+      } catch (error) {
+        console.error('Error restoring session:', error);
+        await storage.clearSession();
+        setInitialRoute('Login');
+      }
     });
   }, []);
 

@@ -73,9 +73,13 @@ export function HomeScreen() {
 
 
   useEffect(() => {
+    let isMounted = true;
     let dbSub: any;
+    let photosSub: any;
 
     storage.getSession().then(session => {
+      if (!isMounted) return;
+      
       if (session?.user) {
         setUserName(session.user.nome);
         setCompanyName('Empresa A'); // TODO: get from session
@@ -93,25 +97,45 @@ export function HomeScreen() {
         dbSub = database.collections.get<Registro>('registros')
           .query(...conditions)
           .observe()
-          .subscribe(data => {
-            setRecords(data);
-            setIsLoading(false);
+          .subscribe({
+            next: (data) => {
+              if (isMounted) {
+                setRecords(data);
+                setIsLoading(false);
+              }
+            },
+            error: (err) => {
+              console.error('Observation error', err);
+              if (isMounted) setIsLoading(false);
+            }
           });
 
         // Track photos count
-        database.collections.get('foto_registros').query(Q.where('usuario_id', currentUserId)).observe().subscribe(fotos => {
-           const pendingPhotos = fotos.filter((f: any) => f.status === 'pending' || f.status === 'local' || f.status === 'failed').length;
-           setPendingPhotosCount(pendingPhotos);
+        photosSub = database.collections.get('foto_registros')
+          .query(Q.where('usuario_id', currentUserId))
+          .observe()
+          .subscribe(fotos => {
+           if (isMounted) {
+             const pendingPhotos = fotos.filter((f: any) => f.status === 'pending' || f.status === 'local' || f.status === 'failed').length;
+             setPendingPhotosCount(pendingPhotos);
+           }
         });
+      } else {
+        if (isMounted) setIsLoading(false);
       }
     });
 
     return () => {
+      isMounted = false;
       if (dbSub) dbSub.unsubscribe();
+      if (photosSub) photosSub.unsubscribe();
     };
   }, [sortOrder, filterType]);
 
   const handleLogout = async () => {
+    const { KeycloakAuthRepository } = await import('../../infra/auth/keycloak-auth.repository');
+    const authRepo = new KeycloakAuthRepository();
+    await authRepo.signOut();
     await storage.clearSession();
     navigation.replace('Login');
   };

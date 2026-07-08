@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb'
 
 export const schema = appSchema({
-  version: 1,
+  version: 2,
   tables: [
     tableSchema({
       name: 'empresas',
@@ -14,6 +14,7 @@ export const schema = appSchema({
     tableSchema({
       name: 'usuarios',
       columns: [
+        { name: 'keycloak_id', type: 'string', isOptional: true },
         { name: 'nome', type: 'string' },
         { name: 'login', type: 'string' },
         { name: 'empresa_id', type: 'number' },
