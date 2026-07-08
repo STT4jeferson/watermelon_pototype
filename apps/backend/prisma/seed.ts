@@ -1,60 +1,46 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const hashPassword = await bcrypt.hash('123456', 10);
+  console.log('Limpando dados antigos (garantindo ambiente zerado para testes)...');
+  await prisma.fotoRegistro.deleteMany({});
+  await prisma.registro.deleteMany({});
+  // Usuários e empresas serão atualizados pelo upsert para manter a amarração do Keycloak
 
-  let empresaA = await prisma.empresa.findFirst({ where: { usuarios: { some: { login: 'usuario_a' } } } });
-  if (!empresaA) {
-    empresaA = await prisma.empresa.create({
-      data: {
-        nome: 'Empresa A',
-        usuarios: {
-          create: {
-            nome: 'Usuário Empresa A',
-            login: 'usuario_a',
-            senha: hashPassword,
-          },
+  const empresaA = await prisma.empresa.upsert({
+    where: { codigo: 'EMPRESA_A' },
+    update: {},
+    create: {
+      codigo: 'EMPRESA_A',
+      nome: 'Empresa A',
+      usuarios: {
+        create: {
+          keycloakId: '11111111-1111-1111-1111-111111111111',
+          nome: 'João Teste',
+          login: 'joao@teste.com'
         },
       },
-    });
-  }
+    },
+  });
 
-  let empresaB = await prisma.empresa.findFirst({ where: { usuarios: { some: { login: 'usuario_b' } } } });
-  if (!empresaB) {
-    empresaB = await prisma.empresa.create({
-      data: {
-        nome: 'Empresa B',
-        usuarios: {
-          create: {
-            nome: 'Usuário Empresa B',
-            login: 'usuario_b',
-            senha: hashPassword,
-          },
+  const empresaB = await prisma.empresa.upsert({
+    where: { codigo: 'EMPRESA_B' },
+    update: {},
+    create: {
+      codigo: 'EMPRESA_B',
+      nome: 'Empresa B',
+      usuarios: {
+        create: {
+          keycloakId: '22222222-2222-2222-2222-222222222222',
+          nome: 'Maria Teste',
+          login: 'maria@teste.com'
         },
       },
-    });
-  }
+    },
+  });
 
-  let empresaC = await prisma.empresa.findFirst({ where: { usuarios: { some: { login: 'usuario_c' } } } });
-  if (!empresaC) {
-    empresaC = await prisma.empresa.create({
-      data: {
-        nome: 'Empresa C',
-        usuarios: {
-          create: {
-            nome: 'Usuário Empresa C',
-            login: 'usuario_c',
-            senha: hashPassword,
-          },
-        },
-      },
-    });
-  }
-
-  console.log('Seed concluído:', { empresaA, empresaB, empresaC });
+  console.log('Seed concluído com usuários integrados ao Keycloak:', { empresaA, empresaB });
 }
 
 main()

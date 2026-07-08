@@ -9,6 +9,7 @@ datasource db {
 
 model Empresa {
   id        Int       @id @default(autoincrement())
+  codigo    String    @unique @default(uuid()) @db.VarChar(64)
   nome      String
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -23,9 +24,9 @@ model Empresa {
 
 model Usuario {
   id        Int       @id @default(autoincrement())
+  keycloakId String    @unique @map("keycloak_id") @db.VarChar(64)
   nome      String
   login     String    @unique
-  senha     String
   empresaId Int       @map("empresa_id")
   empresa   Empresa   @relation(fields: [empresaId], references: [id])
   

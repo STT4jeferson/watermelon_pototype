@@ -1,0 +1,111 @@
+{
+  "realm": "watermelon-local",
+  "enabled": true,
+  "loginTheme": "watermelon",
+  "users": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "username": "joao@teste.com",
+      "email": "joao@teste.com",
+      "firstName": "João",
+      "lastName": "Teste",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{"type": "password", "value": "123"}],
+      "groups": ["Empresa A"]
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "username": "maria@teste.com",
+      "email": "maria@teste.com",
+      "firstName": "Maria",
+      "lastName": "Teste",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{"type": "password", "value": "123"}],
+      "groups": ["Empresa B"]
+    }
+  ],
+  "groups": [
+    {
+      "name": "Empresa A",
+      "path": "/Empresa A"
+    },
+    {
+      "name": "Empresa B",
+      "path": "/Empresa B"
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "watermelon-mobile",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "rootUrl": "",
+      "redirectUris": [
+        "com.watermelonprototype://auth/callback",
+        "com.watermelonprototype:///auth/callback",
+        "exp://127.0.0.1:8081/*",
+        "exp://localhost:8081/*",
+        "http://localhost:8081/*"
+      ],
+      "webOrigins": ["+"],
+      "protocolMappers": [
+        {
+          "name": "grupos_mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "groups",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "empresa_id_mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "empresa_id",
+            "claim.name": "empresa_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "empresa_codigo_mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "empresa_codigo",
+            "claim.name": "empresa_codigo",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "watermelon-backend",
+      "enabled": true,
+      "bearerOnly": true
+    },
+    {
+      "clientId": "watermelon-local-cli",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true
+    }
+  ]
+}

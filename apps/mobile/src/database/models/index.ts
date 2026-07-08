@@ -12,6 +12,7 @@ export class Empresa extends Model {
 export class Usuario extends Model {
   static table = 'usuarios'
 
+  @text('keycloak_id') keycloakId!: string
   @text('nome') nome!: string
   @text('login') login!: string
   @field('empresa_id') empresaId!: number

@@ -28,28 +28,32 @@ export function DetalheRegistroScreen({ route, navigation }: any) {
   useEffect(() => {
     let registroSub: any;
     let fotosSub: any;
+    let isMounted = true;
 
     const fetchDetails = async () => {
       try {
         const reg = await database.collections.get<Registro>('registros').find(registroId);
         
+        if (!isMounted) return;
+
         registroSub = reg.observe().subscribe(r => {
-          setRegistro(r);
+          if (isMounted) setRegistro(r);
         });
 
-        fotosSub = reg.fotos.observe().subscribe((f: FotoRegistro[]) => {
-          setFotos(f);
+        fotosSub = reg.fotos.observe().subscribe(f => {
+          if (isMounted) setFotos(f);
         });
-      } catch (e) {
-        console.error(e);
+      } catch (error) {
+        console.error('Erro ao buscar detalhes', error);
       } finally {
-        setLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
     fetchDetails();
 
     return () => {
+      isMounted = false;
       if (registroSub) registroSub.unsubscribe();
       if (fotosSub) fotosSub.unsubscribe();
     };

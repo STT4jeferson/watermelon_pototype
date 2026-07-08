@@ -1,0 +1,203 @@
+/* Custom Keycloak Login Theme - Watermelon Prototype Design System */
+:root {
+  /* Light Mode Palette */
+  --bg-color: #F4F5F7;
+  --surface-color: #FFFFFF;
+  --primary-color: #0E7365;
+  --primary-hover: #0B5B4F;
+  --text-color: #1A222C;
+  --text-muted: #5F6B79;
+  --border-color: #D5DBE2;
+  --radius-card: 14px;
+  --radius-input: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark Mode Palette */
+    --bg-color: #10151B;
+    --surface-color: #1A2129;
+    --primary-color: #2FA08F;
+    --primary-hover: #268878;
+    --text-color: #E9EDF1;
+    --text-muted: #A3AEBA;
+    --border-color: #39434F;
+  }
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.login-pf-page {
+  padding: 20px;
+}
+
+#kc-header {
+  display: none; /* Esconde o header padrão do Keycloak para um visual mais limpo */
+}
+
+.card-pf {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  .card-pf {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+#kc-page-title {
+  color: var(--text-color);
+  font-size: 24px;
+  font-weight: 800;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+#kc-form {
+  margin-top: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.pf-c-form-control {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-input);
+  color: var(--text-color);
+  padding: 14px 16px;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s;
+}
+
+/* Fix para o InputGroup do Keycloak (onde fica o ícone de olho da senha) */
+.pf-c-input-group {
+  display: flex;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-input);
+  overflow: hidden;
+}
+
+.pf-c-input-group .pf-c-form-control {
+  border: none; /* Remove a borda dupla porque o grupo pai já tem */
+  border-radius: 0; /* Tira o raio para não encavalar */
+  flex: 1;
+  background-color: transparent; /* Garante que o input interno não tenha fundo */
+}
+
+.pf-c-input-group .pf-c-button {
+  background-color: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pf-c-input-group .pf-c-button:hover {
+  color: var(--text-color);
+}
+
+.pf-c-input-group:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+.pf-c-form-control:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+.pf-c-form__label {
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+.pf-c-button.pf-m-primary {
+  background-color: var(--primary-color);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-input);
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  width: 100%;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.pf-c-button.pf-m-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+@media (prefers-color-scheme: dark) {
+  .pf-c-button.pf-m-primary {
+    color: #0A2620; /* Texto escuro no fundo verde claro no dark mode, como no Design System */
+  }
+}
+
+.login-pf-settings {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.login-pf-settings a {
+  color: var(--primary-color);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.login-pf-settings a:hover {
+  text-decoration: underline;
+}
+
+/* Custom Watermelon Logo area via CSS pseudo-element */
+.card-pf::before {
+  content: '';
+  display: block;
+  width: 52px;
+  height: 52px;
+  background-color: var(--primary-color);
+  border-radius: 14px;
+  margin: 0 auto 24px auto;
+  /* Ícone SVG inline em formato de nuvem */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+@media (prefers-color-scheme: dark) {
+  .card-pf::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='%230A2620' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z'/%3E%3C/svg%3E");
+  }
+}

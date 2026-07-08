@@ -1,33 +1,31 @@
-import { storage } from '../storage';
-
-// Try using the LAN IP instead of 10.0.2.2 in case you are on a physical device
-const API_URL = 'http://192.168.15.24:3333'; 
+import { TokenSecureStorage } from '../auth/token-secure-storage';
+import { getDynamicApiUrl } from '../auth/keycloak.config';
 
 export const api = {
   async get(endpoint: string) {
-    const session = await storage.getSession();
+    const token = await TokenSecureStorage.getAccessToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
-    if (session?.token) {
-      headers['Authorization'] = `Bearer ${session.token}`;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, { headers });
+    const response = await fetch(`${getDynamicApiUrl()}${endpoint}`, { headers });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   },
 
   async post(endpoint: string, body: any) {
-    const session = await storage.getSession();
+    const token = await TokenSecureStorage.getAccessToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
-    if (session?.token) {
-      headers['Authorization'] = `Bearer ${session.token}`;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const response = await fetch(`${getDynamicApiUrl()}${endpoint}`, {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
@@ -37,13 +35,13 @@ export const api = {
   },
   
   async postFormData(endpoint: string, formData: FormData) {
-    const session = await storage.getSession();
+    const token = await TokenSecureStorage.getAccessToken();
     const headers: Record<string, string> = {};
-    if (session?.token) {
-      headers['Authorization'] = `Bearer ${session.token}`;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const response = await fetch(`${getDynamicApiUrl()}${endpoint}`, {
       method: 'POST',
       headers,
       body: formData
