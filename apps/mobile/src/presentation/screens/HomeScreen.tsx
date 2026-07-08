@@ -83,12 +83,15 @@ export function HomeScreen() {
         
         const currentUserId = session.user.id;
 
+        const conditions: any[] = [Q.where('usuario_id', currentUserId)];
+        if (filterType !== 'all') {
+          conditions.push(Q.where('tipo', filterType));
+        }
+        conditions.push(Q.sortBy('data_hora', sortOrder));
+
         // Filtra a query apenas para o usuário logado
         dbSub = database.collections.get<Registro>('registros')
-          .query(
-            Q.where('usuario_id', currentUserId),
-            Q.sortBy('data_hora', Q.desc)
-          )
+          .query(...conditions)
           .observe()
           .subscribe(data => {
             setRecords(data);
@@ -106,7 +109,7 @@ export function HomeScreen() {
     return () => {
       if (dbSub) dbSub.unsubscribe();
     };
-  }, []);
+  }, [sortOrder, filterType]);
 
   const handleLogout = async () => {
     await storage.clearSession();
