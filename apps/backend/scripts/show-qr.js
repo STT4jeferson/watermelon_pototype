@@ -30,9 +30,17 @@ if (fs.existsSync(rootEnvPath)) {
 const backendEnvPath = path.resolve(__dirname, '../.env');
 if (fs.existsSync(backendEnvPath)) {
   let backendEnvContent = fs.readFileSync(backendEnvPath, 'utf8');
-  // Substitui qualquer IP antigo no OIDC_ISSUER e OIDC_JWKS_URI pelo IP da LAN atual
-  backendEnvContent = backendEnvContent.replace(/OIDC_ISSUER="http:\/\/[0-9\.]+:/g, `OIDC_ISSUER="http://${localIp}:`);
-  backendEnvContent = backendEnvContent.replace(/OIDC_JWKS_URI="http:\/\/[0-9\.]+:/g, `OIDC_JWKS_URI="http://${localIp}:`);
+  // Substitui qualquer IP ou localhost antigo no OIDC_ISSUER e OIDC_JWKS_URI pelo IP da LAN atual
+  // Suporta com ou sem aspas
+  backendEnvContent = backendEnvContent.replace(/OIDC_ISSUER="?http:\/\/[^:]+:/g, `OIDC_ISSUER="http://${localIp}:`);
+  backendEnvContent = backendEnvContent.replace(/OIDC_JWKS_URI="?http:\/\/[^:]+:/g, `OIDC_JWKS_URI="http://${localIp}:`);
+  
+  // Garantir que OIDC_ISSUER está realmente atualizado (fallback)
+  if (!backendEnvContent.includes(`OIDC_ISSUER="http://${localIp}:`)) {
+     backendEnvContent += `\nOIDC_ISSUER="http://${localIp}:8080/realms/watermelon-local"`;
+     backendEnvContent += `\nOIDC_JWKS_URI="http://${localIp}:8080/realms/watermelon-local/protocol/openid-connect/certs"`;
+  }
+  
   fs.writeFileSync(backendEnvPath, backendEnvContent);
 }
 

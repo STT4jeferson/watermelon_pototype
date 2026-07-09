@@ -7,6 +7,8 @@ import { jwtDecode } from 'jwt-decode';
 
 WebBrowser.maybeCompleteAuthSession();
 
+import { Logger } from '../logger';
+
 export class KeycloakAuthRepository implements AuthRepository {
   private get discovery() {
     return {
@@ -18,6 +20,7 @@ export class KeycloakAuthRepository implements AuthRepository {
   }
 
   async signIn(): Promise<AuthSessionType> {
+    Logger.info('Auth', 'Iniciando fluxo de signIn com Keycloak');
     const redirectUri = AuthSession.makeRedirectUri({
       scheme: 'com.watermelonprototype',
       path: 'auth/callback'
@@ -33,8 +36,11 @@ export class KeycloakAuthRepository implements AuthRepository {
     const result = await request.promptAsync(this.discovery);
 
     if (result.type !== 'success') {
+      Logger.warn('Auth', 'Login não foi sucesso', result);
       throw new Error('Falha no login ou cancelado pelo usuário');
     }
+
+    Logger.debug('Auth', 'Código obtido, trocando por token...');
 
     const tokenResult = await AuthSession.exchangeCodeAsync(
       {
@@ -51,6 +57,7 @@ export class KeycloakAuthRepository implements AuthRepository {
     await TokenSecureStorage.saveTokens(tokenResult.accessToken, tokenResult.refreshToken);
 
     const decoded = jwtDecode<any>(tokenResult.accessToken);
+    Logger.info('Auth', 'Login finalizado com sucesso', { user: decoded.sub });
     
     return {
       accessToken: tokenResult.accessToken,

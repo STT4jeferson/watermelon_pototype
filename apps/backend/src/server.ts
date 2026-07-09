@@ -6,11 +6,11 @@ import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
 import path from 'path';
 
+dotenv.config();
+
 import { authRoutes } from './modules/auth/routes';
 import { syncRoutes } from './modules/sync/routes';
 import { fotoRoutes } from './modules/fotos/routes';
-
-dotenv.config();
 
 const app = Fastify({ logger: true });
 

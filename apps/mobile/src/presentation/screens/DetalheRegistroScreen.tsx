@@ -6,8 +6,12 @@ import { Button } from '../components/Button';
 import { useTheme } from '../theme/ThemeProvider';
 import { SyncBadge } from '../components/SyncBadge';
 import { PhotoThumb } from '../components/PhotoThumb';
-import { database } from '../../database';
 import { Registro, FotoRegistro } from '../../database/models';
+import { GetRegistroDetailsUseCase } from '../../application/usecases/GetRegistroDetailsUseCase';
+import { WatermelonRegistroRepository } from '../../infrastructure/repositories/WatermelonRegistroRepository';
+
+const registroRepository = new WatermelonRegistroRepository();
+const getRegistroDetailsUseCase = new GetRegistroDetailsUseCase(registroRepository);
 
 export function DetalheRegistroScreen({ route, navigation }: any) {
   const { t } = useTranslation();
@@ -32,21 +36,21 @@ export function DetalheRegistroScreen({ route, navigation }: any) {
 
     const fetchDetails = async () => {
       try {
-        const reg = await database.collections.get<Registro>('registros').find(registroId);
+        const { registro: reg, fotosObservable } = await getRegistroDetailsUseCase.execute(registroId);
         
         if (!isMounted) return;
 
-        registroSub = reg.observe().subscribe(r => {
+        registroSub = reg.observe().subscribe((r: Registro) => {
           if (isMounted) setRegistro(r);
         });
 
-        fotosSub = reg.fotos.observe().subscribe(f => {
+        fotosSub = fotosObservable.subscribe((f: FotoRegistro[]) => {
           if (isMounted) setFotos(f);
         });
       } catch (error) {
         console.error('Erro ao buscar detalhes', error);
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 

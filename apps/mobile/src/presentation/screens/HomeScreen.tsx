@@ -15,10 +15,17 @@ import { Button } from '../components/Button';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { storage } from '../../infra/storage';
-import { database } from '../../database';
-import { Registro, FotoRegistro } from '../../database/models';
-import { Q } from '@nozbe/watermelondb';
+import { Registro } from '../../database/models';
 import { syncData, SyncProgress } from '../../modules/sync/syncService';
+import { ObserveRegistrosUseCase } from '../../application/usecases/ObserveRegistrosUseCase';
+import { ObservePendingPhotosUseCase } from '../../application/usecases/ObservePendingPhotosUseCase';
+import { ClearLocalDataUseCase } from '../../application/usecases/ClearLocalDataUseCase';
+import { WatermelonRegistroRepository } from '../../infrastructure/repositories/WatermelonRegistroRepository';
+
+const registroRepository = new WatermelonRegistroRepository();
+const observeRegistrosUseCase = new ObserveRegistrosUseCase(registroRepository);
+const observePendingPhotosUseCase = new ObservePendingPhotosUseCase(registroRepository);
+const clearLocalDataUseCase = new ClearLocalDataUseCase(registroRepository);
 
 function ObservableRecordCard({ registro, onPress }: { registro: Registro, onPress: () => void }) {
   const [photosCount, setPhotosCount] = useState(0);
@@ -87,18 +94,10 @@ export function HomeScreen() {
         
         const currentUserId = session.user.id;
 
-        const conditions: any[] = [Q.where('usuario_id', currentUserId)];
-        if (filterType !== 'all') {
-          conditions.push(Q.where('tipo', filterType));
-        }
-        conditions.push(Q.sortBy('data_hora', sortOrder));
-
-        // Filtra a query apenas para o usuário logado
-        dbSub = database.collections.get<Registro>('registros')
-          .query(...conditions)
-          .observe()
+        // Filtra a query usando o UseCase (que esconde o WatermelonDB da View)
+        dbSub = observeRegistrosUseCase.execute(currentUserId, filterType, sortOrder)
           .subscribe({
-            next: (data) => {
+            next: (data: Registro[]) => {
               if (isMounted) {
                 setRecords(data);
                 setIsLoading(false);
@@ -111,15 +110,12 @@ export function HomeScreen() {
           });
 
         // Track photos count
-        photosSub = database.collections.get('foto_registros')
-          .query(Q.where('usuario_id', currentUserId))
-          .observe()
-          .subscribe(fotos => {
+        photosSub = observePendingPhotosUseCase.execute(currentUserId)
+          .subscribe((count: number) => {
            if (isMounted) {
-             const pendingPhotos = fotos.filter((f: any) => f.status === 'pending' || f.status === 'local' || f.status === 'failed').length;
-             setPendingPhotosCount(pendingPhotos);
+             setPendingPhotosCount(count);
            }
-        });
+          });
       } else {
         if (isMounted) setIsLoading(false);
       }
@@ -158,17 +154,7 @@ const handleClearAll = async () => {
       const currentUserId = session?.user?.id;
       if (!currentUserId) return;
 
-      const regs = await database.get<Registro>('registros').query(Q.where('usuario_id', currentUserId)).fetch();
-      const fotos = await database.get<FotoRegistro>('foto_registros').query(Q.where('usuario_id', currentUserId)).fetch();
-      
-      await database.write(async () => {
-        for (const f of fotos) {
-          await f.destroyPermanently();
-        }
-        for (const r of regs) {
-          await r.destroyPermanently();
-        }
-      });
+      await clearLocalDataUseCase.execute(currentUserId);
       setIsClearModalVisible(false);
     } catch (e) {
       console.error('Erro ao limpar', e);

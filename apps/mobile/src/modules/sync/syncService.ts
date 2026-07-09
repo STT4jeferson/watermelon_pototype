@@ -5,6 +5,7 @@ import { storage } from '../../infra/storage';
 import * as FileSystem from 'expo-file-system';
 import { FotoRegistro, Registro } from '../../database/models';
 import { Q } from '@nozbe/watermelondb';
+import { Logger } from '../../infra/logger';
 
 export type SyncProgress = {
   phase: 'idle' | 'records' | 'photos' | 'done' | 'error';
@@ -15,19 +16,24 @@ export type SyncProgress = {
 
 export async function syncData(onProgress?: (progress: SyncProgress) => void) {
   try {
+    Logger.info('Sync', 'Iniciando Sincronização Global');
     if (onProgress) onProgress({ phase: 'records' });
 
     await synchronize({
       database,
       pullChanges: async ({ lastPulledAt, schemaVersion, migration }) => {
+        Logger.debug('Sync', `Realizando pull request (lastPulledAt: ${lastPulledAt})`);
         const response = await api.get(`/sync/pull?lastPulledAt=${lastPulledAt || 0}`);
+        Logger.info('Sync', 'Pull finalizado com sucesso', { timestamp: response.timestamp });
         return {
           changes: response.changes,
           timestamp: response.timestamp,
         };
       },
       pushChanges: async ({ changes, lastPulledAt }) => {
+        Logger.debug('Sync', 'Realizando push request', { changes });
         await api.post('/sync/push', { changes, lastPulledAt });
+        Logger.info('Sync', 'Push finalizado com sucesso');
       },
     });
 
@@ -43,6 +49,7 @@ export async function syncData(onProgress?: (progress: SyncProgress) => void) {
     }
 
     if (onProgress) onProgress({ phase: 'photos' });
+    Logger.info('Sync', 'Iniciando sincronização de fotos');
     const errors = await syncFotos(onProgress);
 
     const { storage } = require('../../infra/storage');
@@ -55,13 +62,14 @@ export async function syncData(onProgress?: (progress: SyncProgress) => void) {
     }
 
     if (onProgress) {
+      Logger.info('Sync', 'Sincronização Global Finalizada', { errors });
       onProgress({ 
         phase: errors > 0 ? 'error' : 'done', 
         errorCount: errors 
       });
     }
   } catch (error) {
-    console.error('Global sync error', error);
+    Logger.error('Sync', 'Erro crítico durante a sincronização global', error);
     if (onProgress) onProgress({ phase: 'error', errorCount: 1 });
     throw error;
   }
@@ -98,6 +106,7 @@ async function syncFotos(onProgress?: (progress: SyncProgress) => void): Promise
       } as any);
 
       const uploadResponse = await api.postFormData(`/registros/${foto.registroId}/fotos`, formData);
+      Logger.debug('Sync', `Foto ${foto.id} enviada com sucesso`);
 
       await database.write(async () => {
         await foto.update(f => {
@@ -108,7 +117,7 @@ async function syncFotos(onProgress?: (progress: SyncProgress) => void): Promise
       syncedPhotos++;
       if (onProgress) onProgress({ phase: 'photos', totalPhotos, syncedPhotos });
     } catch (error) {
-      console.error('Erro ao sincronizar foto', foto.id, error);
+      Logger.error('Sync', `Erro ao sincronizar foto ${foto.id}`, error);
       errors++;
       await database.write(async () => {
         await foto.update(f => { f.status = 'failed'; });

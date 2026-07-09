@@ -9,9 +9,13 @@ import { useNavigation } from '@react-navigation/native';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { ConnectionStatus } from '../components/ConnectionStatus';
 import * as ImagePicker from 'expo-image-picker';
-import { database } from '../../database';
-import { Registro, FotoRegistro } from '../../database/models';
+import { CreateRegistroUseCase } from '../../application/usecases/CreateRegistroUseCase';
+import { WatermelonRegistroRepository } from '../../infrastructure/repositories/WatermelonRegistroRepository';
 import { storage } from '../../infra/storage';
+
+// Injeção de dependência manual (no futuro pode ir para um container)
+const registroRepository = new WatermelonRegistroRepository();
+const createRegistroUseCase = new CreateRegistroUseCase(registroRepository);
 
 export function NovoRegistroScreen() {
   const { t } = useTranslation();
@@ -66,37 +70,10 @@ export function NovoRegistroScreen() {
     setLoading(true);
 
     try {
-      const session = await storage.getSession();
-      const empresaId = session?.user?.empresaId || 1;
-      const usuarioId = session?.user?.id || 1;
-      
-      const now = new Date();
-
-      await database.write(async () => {
-        const novoRegistro = await database.collections.get<Registro>('registros').create(registro => {
-          registro.tipo = type!;
-          registro.descricao = description;
-          registro.dataHora = now;
-          registro.status = 'pending';
-          registro.empresaId = empresaId;
-          registro.usuarioId = usuarioId;
-          registro.createdAt = now;
-          registro.updatedAt = now;
-        });
-
-        for (const uri of photos) {
-          await database.collections.get<FotoRegistro>('foto_registros').create(foto => {
-            foto.registro.set(novoRegistro);
-            foto.localPath = uri;
-            foto.fileName = uri.split('/').pop() || 'photo.jpg';
-            foto.mimeType = 'image/jpeg';
-            foto.status = 'local';
-            foto.empresaId = empresaId;
-            foto.usuarioId = usuarioId;
-            foto.createdAt = now;
-            foto.updatedAt = now;
-          });
-        }
+      await createRegistroUseCase.execute({
+        tipo: type!,
+        descricao: description,
+        fotos: photos
       });
       navigation.goBack();
     } catch (e) {

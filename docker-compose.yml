@@ -56,7 +56,7 @@ services:
     volumes:
       - ./infra/keycloak_import:/opt/keycloak/data/import:ro
       - ./infra/keycloak_theme:/opt/keycloak/themes:ro
-    command: start-dev --import-realm
+    command: start-dev --import-realm --http-host=0.0.0.0
     depends_on:
       keycloak-db:
         condition: service_healthy

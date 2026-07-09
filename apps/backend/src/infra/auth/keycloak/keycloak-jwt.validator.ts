@@ -1,14 +1,21 @@
 import * as jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 
-const client = jwksClient({
-  jwksUri: process.env.OIDC_JWKS_URI as string,
-  cache: true,
-  rateLimit: true,
-});
+let client: jwksClient.JwksClient | null = null;
+
+function getClient() {
+  if (!client) {
+    client = jwksClient({
+      jwksUri: process.env.OIDC_JWKS_URI as string,
+      cache: true,
+      rateLimit: true,
+    });
+  }
+  return client;
+}
 
 function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
-  client.getSigningKey(header.kid, (err, key) => {
+  getClient().getSigningKey(header.kid, (err, key) => {
     if (err) {
       callback(err, undefined);
       return;
